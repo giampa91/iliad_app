@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+
+  db:
+    image: postgres:15
+    container_name: postgres_db
+    restart: always
+    environment:
+      POSTGRES_DB: iliad
+      POSTGRES_USER: iliaduser
+      POSTGRES_PASSWORD: iliadpass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  web:
+    build:
+      context: ./iliad-backend
+      dockerfile: Dockerfile
+    command: gunicorn backend.wsgi:application --bind 0.0.0.0:8000
+    volumes:
+      - ./iliad-backend:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    environment:
+      - DEBUG=1
+      - POSTGRES_DB=iliad
+      - POSTGRES_USER=iliaduser
+      - POSTGRES_PASSWORD=iliadpass
+      - POSTGRES_HOST=db
+    command: >
+      sh -c "python manage.py migrate &&
+             gunicorn backend.wsgi:application --bind 0.0.0.0:8000"
+
+  frontend:
+    build:
+      context: ./iliad-frontend
+    ports:
+      - "3000:80"
+
+volumes:
+  postgres_data:
+
